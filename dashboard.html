@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acorn Performance Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link rel="stylesheet" href="./style.css">
+    <style>
+       
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <header>
+            <div class="title">
+                <h1>Acorn Performance Dashboard</h1>
+            </div>
+            <div class="date" id="current-date"></div>
+        </header>
+        
+        <div class="kpi-cards">
+            <div class="card">
+                <div class="card-title">Total Installs (May)</div>
+                <div class="card-value" id="total-installs">14</div>
+                <div class="card-subtitle" id="installs-change"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">Total ECs (May)</div>
+                <div class="card-value" id="total-ecs">4</div>
+                <div class="card-subtitle" id="ecs-change"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">Total Active Customers</div>
+                <div class="card-value">1,793</div>
+            </div>
+            <div class="card">
+                <div class="card-title">Total Leads</div>
+                <div class="card-value">115</div>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <div class="chart-card">
+                <div class="chart-title">Monthly Installs Comparison</div>
+                <div class="region-selector">
+                    <button class="region-btn active" data-region="all">All Regions</button>
+                    <button class="region-btn" data-region="garden">Garden Route</button>
+                    <button class="region-btn" data-region="eastern">Eastern Cape</button>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="installs-chart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <div class="chart-title">Monthly ECs Comparison</div>
+                <div class="region-selector">
+                    <button class="region-btn active" data-region="all">All Regions</button>
+                    <button class="region-btn" data-region="garden">Garden Route</button>
+                    <button class="region-btn" data-region="eastern">Eastern Cape</button>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="ecs-chart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="leads-section">
+            <div class="stat-card">
+                <div class="stat-title">Paid Awaiting Installs</div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-title">Garden Route</div>
+                        <div class="stat-value">20</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Eastern Cape</div>
+                        <div class="stat-value">16</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <div class="chart-title">Region Performance (May)</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Region</th>
+                            <th>Installs</th>
+                            <th>ECs</th>
+                            <th>Paid Awaiting</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Garden Route</td>
+                            <td>4</td>
+                            <td>3</td>
+                            <td>20</td>
+                        </tr>
+                        <tr>
+                            <td>Eastern Cape</td>
+                            <td>10</td>
+                            <td>1</td>
+                            <td>16</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Set current date
+        const now = new Date();
+        document.getElementById('current-date').textContent = now.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+        
+        // Data for the dashboard
+        const data = {
+            installs: {
+                april: {
+                    garden: 33,
+                    eastern: 22,
+                    total: 55
+                },
+                may: {
+                    garden: 4,
+                    eastern: 10,
+                    total: 14
+                }
+            },
+            ecs: {
+                april: {
+                    garden: 17,
+                    eastern: 4,
+                    total: 21
+                },
+                may: {
+                    garden: 3,
+                    eastern: 1,
+                    total: 4
+                }
+            },
+            leads: {
+                paidAwaiting: {
+                    garden: 20,
+                    eastern: 16,
+                    total: 36
+                },
+                active: 1793,
+                total: 115
+            }
+        };
+        
+        // Calculate change percentages
+        const installsChange = ((data.installs.may.total - data.installs.april.total) / data.installs.april.total * 100).toFixed(1);
+        const ecsChange = ((data.ecs.may.total - data.ecs.april.total) / data.ecs.april.total * 100).toFixed(1);
+        
+        document.getElementById('installs-change').textContent = `${installsChange}% from last month`;
+        document.getElementById('ecs-change').textContent = `${ecsChange}% from last month`;
+        
+        // Chart colors
+        const colors = {
+            garden: 'rgba(67, 97, 238, 0.7)',
+            eastern: 'rgba(76, 201, 240, 0.7)',
+            total: 'rgba(247, 37, 133, 0.7)',
+            borderGarden: 'rgba(67, 97, 238, 1)',
+            borderEastern: 'rgba(76, 201, 240, 1)',
+            borderTotal: 'rgba(247, 37, 133, 1)'
+        };
+        
+        // Create installs chart
+        const installsCtx = document.getElementById('installs-chart').getContext('2d');
+        const installsChart = new Chart(installsCtx, {
+            type: 'bar',
+            data: {
+                labels: ['April', 'May'],
+                datasets: [
+                    {
+                        label: 'Garden Route',
+                        data: [data.installs.april.garden, data.installs.may.garden],
+                        backgroundColor: colors.garden,
+                        borderColor: colors.borderGarden,
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Eastern Cape',
+                        data: [data.installs.april.eastern, data.installs.may.eastern],
+                        backgroundColor: colors.eastern,
+                        borderColor: colors.borderEastern,
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Installs'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Create ECs chart
+        const ecsCtx = document.getElementById('ecs-chart').getContext('2d');
+        const ecsChart = new Chart(ecsCtx, {
+            type: 'bar',
+            data: {
+                labels: ['April', 'May'],
+                datasets: [
+                    {
+                        label: 'Garden Route',
+                        data: [data.ecs.april.garden, data.ecs.may.garden],
+                        backgroundColor: colors.garden,
+                        borderColor: colors.borderGarden,
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Eastern Cape',
+                        data: [data.ecs.april.eastern, data.ecs.may.eastern],
+                        backgroundColor: colors.eastern,
+                        borderColor: colors.borderEastern,
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of ECs'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Region selector functionality
+        const installsRegionBtns = document.querySelectorAll('.chart-card:nth-child(1) .region-btn');
+        const ecsRegionBtns = document.querySelectorAll('.chart-card:nth-child(2) .region-btn');
+        
+        // Installs chart region filter
+        installsRegionBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Update active button
+                installsRegionBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                const region = btn.dataset.region;
+                updateInstallsChart(region);
+            });
+        });
+        
+        // ECs chart region filter
+        ecsRegionBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Update active button
+                ecsRegionBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                const region = btn.dataset.region;
+                updateEcsChart(region);
+            });
+        });
+        
+        function updateInstallsChart(region) {
+            // Remove existing datasets
+            installsChart.data.datasets = [];
+            
+            if (region === 'all') {
+                installsChart.data.datasets = [
+                    {
+                        label: 'Garden Route',
+                        data: [data.installs.april.garden, data.installs.may.garden],
+                        backgroundColor: colors.garden,
+                        borderColor: colors.borderGarden,
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Eastern Cape',
+                        data: [data.installs.april.eastern, data.installs.may.eastern],
+                        backgroundColor: colors.eastern,
+                        borderColor: colors.borderEastern,
+                        borderWidth: 1
+                    }
+                ];
+            } else if (region === 'garden') {
+                installsChart.data.datasets = [
+                    {
+                        label: 'Garden Route',
+                        data: [data.installs.april.garden, data.installs.may.garden],
+                        backgroundColor: colors.garden,
+                        borderColor: colors.borderGarden,
+                        borderWidth: 1
+                    }
+                ];
+            } else if (region === 'eastern') {
+                installsChart.data.datasets = [
+                    {
+                        label: 'Eastern Cape',
+                        data: [data.installs.april.eastern, data.installs.may.eastern],
+                        backgroundColor: colors.eastern,
+                        borderColor: colors.borderEastern,
+                        borderWidth: 1
+                    }
+                ];
+            }
+            
+            installsChart.update();
+        }
+        
+        function updateEcsChart(region) {
+            // Remove existing datasets
+            ecsChart.data.datasets = [];
+            
+            if (region === 'all') {
+                ecsChart.data.datasets = [
+                    {
+                        label: 'Garden Route',
+                        data: [data.ecs.april.garden, data.ecs.may.garden],
+                        backgroundColor: colors.garden,
+                        borderColor: colors.borderGarden,
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Eastern Cape',
+                        data: [data.ecs.april.eastern, data.ecs.may.eastern],
+                        backgroundColor: colors.eastern,
+                        borderColor: colors.borderEastern,
+                        borderWidth: 1
+                    }
+                ];
+            } else if (region === 'garden') {
+                ecsChart.data.datasets = [
+                    {
+                        label: 'Garden Route',
+                        data: [data.ecs.april.garden, data.ecs.may.garden],
+                        backgroundColor: colors.garden,
+                        borderColor: colors.borderGarden,
+                        borderWidth: 1
+                    }
+                ];
+            } else if (region === 'eastern') {
+                ecsChart.data.datasets = [
+                    {
+                        label: 'Eastern Cape',
+                        data: [data.ecs.april.eastern, data.ecs.may.eastern],
+                        backgroundColor: colors.eastern,
+                        borderColor: colors.borderEastern,
+                        borderWidth: 1
+                    }
+                ];
+            }
+            
+            ecsChart.update();
+        }
+    </script>
+</body>
+</html>
